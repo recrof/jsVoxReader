@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Voxel playground</title>
+        <style>
+            body { margin: 0; }
+            canvas { width: 100%; height: 100% }
+        </style>
+    </head>
+    <body>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r73/three.min.js"></script>
+        <script src="orbit.js"></script>
+        <script src="load.js"></script>
+        <script>
+            /* global window, THREE */
+            function readFile(input) {
+                var file    = input.files[0],
+                    reader  = new FileReader();
+
+                reader.onloadend = function () {
+                    var voxelData = parseMagicaVox(reader.result);
+                    renderVox(voxelData);
+                }
+
+                reader.readAsArrayBuffer(file);
+            }
+
+            function renderVox(data) {'use strict';
+                var scene = new THREE.Scene();
+                var camera = new THREE.PerspectiveCamera( 90, window.innerWidth / window.innerHeight, 0.1, 1000 );
+
+                var renderer = new THREE.WebGLRenderer();
+                renderer.setSize( window.innerWidth, window.innerHeight );
+                document.body.appendChild( renderer.domElement );
+
+                var controls = new THREE.OrbitControls( camera, renderer.domElement );
+                controls.enableDamping = true;
+                controls.dampingFactor = 0.25;
+                var particles = new THREE.Geometry();
+
+                // now create the individual particles
+                data.voxels.forEach(function(voxels) {
+                    voxels.forEach(function(voxel) {
+                        particles.vertices.push(new THREE.Vector3(voxel[0], voxel[1], voxel[2]));
+                        particles.colors.push(new THREE.Color(data.palette[voxel[3]] >>> 8));
+                    });
+                });
+
+                // create the particle system
+                var points = new THREE.Points(
+                    particles,
+                    new THREE.PointsMaterial({
+                        vertexColors: THREE.VertexColors,
+                        //sizeAttenuation: false,
+                        size: 2
+                    }));
+                console.log(particles);
+                // add it to the scene
+                var variation = 0;
+/*
+                window.setInterval(function() {
+                    variation++;
+                    particles.colors.forEach(function(c, i) { c.setHex(i * variation) });
+                    particles.colorsNeedUpdate = true;
+                }, 100);
+*/
+                scene.add(points);
+                var render = function () {
+                    requestAnimationFrame( render );
+                    renderer.render(scene, camera);
+                };
+                camera.position.z = 5;
+                render();
+            }
+
+        </script>
+        <input type="file" onchange="readFile(this)">
+    </body>
+</html>
