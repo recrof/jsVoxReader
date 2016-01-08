@@ -4,9 +4,10 @@ function parseMagicaVox(data) {"use strict";
         result = {};
 
     function readString(size) {
-        var result = '';
-        for(let i = 0; i < size; i++) {
-            let byte = bin.getUint8(offset);
+        var result = '',
+            i, byte;
+        for(i = 0; i < size; i++) {
+            byte = bin.getUint8(offset);
             result += String.fromCharCode(byte);
             offset++;
         }
@@ -20,17 +21,22 @@ function parseMagicaVox(data) {"use strict";
     }
 
     function readChunk() {
-        var chunk = {};
+        var chunk = {},
+            childBytesRemaining,
+            childChunk,
+            numVoxels,
+            voxels,
+            i;
 
         chunk.id = readString(4);
         chunk.length = readInt();
         chunk.childLength = readInt();
 
         if(chunk.id === 'MAIN' && chunk.childLength > 0) {
-            let childBytesRemaining = chunk.childLength;
+            childBytesRemaining = chunk.childLength;
             chunk.childs = [];
             while(childBytesRemaining > 0) {
-                let childChunk = readChunk();
+                childChunk = readChunk();
                 //console.log(childChunk);
                 childBytesRemaining -= childChunk.length + 12; // 12 = id + len + childLen
                 //console.log('remaining:', childBytesRemaining);
@@ -46,16 +52,16 @@ function parseMagicaVox(data) {"use strict";
             }
         }
         else if(chunk.id === 'XYZI') {
-            let numVoxels = readInt();
-            let voxels = [];
-            for(let i = 0; i < numVoxels; i++) {
+            numVoxels = readInt();
+            voxels = [];
+            for(i = 0; i < numVoxels; i++) {
                 voxels.push([readByte(), readByte(), readByte(), readByte()])
             }
             result.voxels.push(voxels);
         }
         else if(chunk.id === 'RGBA') {
             result.palette = [];
-            for(let i = 0; i < 256; i++) {
+            for(i = 0; i < 256; i++) {
                 result.palette.push(readInt(true));
             }
         } else {
